@@ -3,25 +3,151 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PigOS - GitHub Päivitys</title>
+    <title>PigOS - Matopeli</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', sans-serif; }
-        body { overflow: hidden; background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%); height: 100vh; color: white; }
+        body { overflow: hidden; height: 100vh; color: white; }
+        
+        /* BIOS-näyttö */
+        #bios-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #001a00;
+            color: #33ff33;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .bios-content {
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        .bios-line {
+            margin-bottom: 10px;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        .bios-logo {
+            font-size: 48px;
+            text-align: center;
+            margin-bottom: 30px;
+            color: #fff;
+            text-shadow: 0 0 10px #33ff33;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { text-shadow: 0 0 10px #33ff33; }
+            50% { text-shadow: 0 0 20px #33ff33, 0 0 30px #33ff33; }
+            100% { text-shadow: 0 0 10px #33ff33; }
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 20px;
+            background-color: #002200;
+            border: 1px solid #33ff33;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: #33ff33;
+            transition: width 0.5s ease;
+        }
+        
+        /* Oletusteema (sininen) */
+        body[data-theme="blue"] {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+        }
+        
+        /* Tumma teema */
+        body[data-theme="dark"] {
+            background: linear-gradient(135deg, #121212 0%, #333333 100%);
+        }
+        
+        /* Vaalea teema */
+        body[data-theme="light"] {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #333;
+        }
+        
+        /* Vaalean teeman mukautukset */
+        body[data-theme="light"] .desktop-icon {
+            color: #333;
+        }
+        
+        body[data-theme="light"] .taskbar {
+            background: rgba(200, 200, 200, 0.9);
+            color: #333;
+        }
         
         .desktop { width: 100vw; height: 100vh; position: relative; }
         .desktop-icons { position: absolute; top: 20px; left: 20px; }
-        .desktop-icon { width: 80px; height: 80px; margin: 10px; text-align: center; cursor: pointer; }
+        .desktop-icon { width: 80px; height: 80px; margin: 10px; text-align: center; cursor: pointer; color: white; }
         .icon-image { font-size: 40px; margin-bottom: 5px; }
         .icon-label { font-size: 12px; text-shadow: 0 1px 2px rgba(0,0,0,0.8); }
         
-        .taskbar { position: fixed; bottom: 0; left: 0; right: 0; height: 40px; background: rgba(30,30,30,0.9); 
-                  display: flex; align-items: center; padding: 0 20px; z-index: 999; }
-        .start-button { padding: 0 15px; height: 30px; background: #0078d7; border: none; border-radius: 5px; color: white; cursor: pointer; }
+        .taskbar { 
+            position: fixed; 
+            bottom: 0; 
+            left: 0; 
+            right: 0; 
+            height: 40px; 
+            background: rgba(30,30,30,0.9); 
+            display: flex; 
+            align-items: center; 
+            padding: 0 20px; 
+            z-index: 999; 
+            justify-content: space-between;
+        }
+        .taskbar-left { display: flex; align-items: center; gap: 10px; }
+        .taskbar-right { display: flex; align-items: center; gap: 10px; }
         
-        .window { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 600px; 
-                  height: 400px; background: white; border-radius: 10px; display: none; flex-direction: column; z-index: 100; }
+        .start-button, .taskbar-button { 
+            padding: 0 15px; 
+            height: 30px; 
+            background: #0078d7; 
+            border: none; 
+            border-radius: 5px; 
+            color: white; 
+            cursor: pointer; 
+        }
+
+        .window { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            width: 600px; 
+            height: 400px; 
+            background: white; 
+            border-radius: 10px; 
+            display: none; 
+            flex-direction: column; 
+            z-index: 100; 
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
         .window-header { padding: 15px; background: #0078d7; color: white; border-radius: 10px 10px 0 0; 
-                         display: flex; justify-content: space-between; align-items: center; }
+                         display: flex; justify-content: space-between; align-items: center; cursor: grab; user-select: none; }
+        .window-header:active { cursor: grabbing; }
         .window-content { flex: 1; padding: 20px; color: #333; overflow: auto; }
         
         .update-notification { 
@@ -41,10 +167,555 @@
                     border-top: 3px solid #3498db; border-radius: 50%; animation: spin 1s linear infinite; }
         
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        
+        /* Logo animaatio */
+        .logo-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1s;
+        }
+        
+        .logo-animation.visible {
+            opacity: 1;
+        }
+        
+        .logo {
+            font-size: 80px;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.7);
+            animation: logoPulse 2s infinite;
+        }
+        
+        @keyframes logoPulse {
+            0% { transform: scale(1); text-shadow: 0 0 20px rgba(255, 255, 255, 0.7); }
+            50% { transform: scale(1.1); text-shadow: 0 0 30px rgba(255, 255, 255, 1); }
+            100% { transform: scale(1); text-shadow: 0 0 20px rgba(255, 255, 255, 0.7); }
+        }
+
+        .log-entry {
+            border-bottom: 1px solid #ddd;
+            padding: 10px 0;
+        }
+
+        /* Sammutus- ja uudelleenkäynnistysnäkymä */
+        #shutdown-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: black;
+            color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            font-size: 2em;
+            z-index: 10001;
+            display: none;
+        }
+
+        /* Käynnistä-valikko */
+        #start-menu {
+            position: fixed;
+            bottom: 45px;
+            left: 20px;
+            width: 250px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 8px;
+            padding: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 998;
+            display: none;
+            flex-direction: column;
+        }
+
+        .start-menu-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            color: #333;
+            transition: background 0.2s;
+        }
+
+        .start-menu-item:hover {
+            background: #e0e0e0;
+        }
+
+        .start-menu-item .icon {
+            margin-right: 10px;
+            font-size: 1.2em;
+        }
+
+        /* Matopeli-ikkuna */
+        #snake-window .window-content {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #snake-canvas {
+            background-color: #333;
+            border: 2px solid #555;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        #snake-controls {
+            margin-top: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #666;
+            text-align: center;
+        }
+
+        #snake-score {
+            margin-top: 10px;
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #4CAF50;
+        }
+
+        /* Tiedostonhallinnan tyylit */
+        .file-manager {
+            display: flex;
+            height: 100%;
+        }
+        
+        .file-toolbar {
+            background: #f0f0f0;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .file-toolbar button {
+            padding: 5px 10px;
+            background: #e0e0e0;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .file-toolbar button:hover {
+            background: #d0d0d0;
+        }
+        
+        .file-sidebar {
+            width: 200px;
+            background: #f8f8f8;
+            border-right: 1px solid #ddd;
+            padding: 10px;
+        }
+        
+        .file-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .file-path {
+            background: #fff;
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .file-content {
+            flex: 1;
+            padding: 10px;
+            background: #fff;
+            overflow-y: auto;
+        }
+        
+        .file-item {
+            display: flex;
+            align-items: center;
+            padding: 5px;
+            margin-bottom: 2px;
+            border-radius: 3px;
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        .file-item:hover {
+            background: #e3f2fd;
+        }
+        
+        .file-item.selected {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .file-item .icon {
+            margin-right: 8px;
+            font-size: 16px;
+        }
+        
+        .file-item .name {
+            flex: 1;
+            font-size: 13px;
+        }
+        
+        .file-item .size {
+            font-size: 11px;
+            color: #666;
+            margin-left: 10px;
+        }
+        
+        .file-upload-area {
+            border: 2px dashed #ccc;
+            border-radius: 5px;
+            padding: 20px;
+            text-align: center;
+            margin: 10px 0;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .file-upload-area:hover {
+            border-color: #2196f3;
+            color: #2196f3;
+        }
+        
+        .file-upload-area.dragover {
+            border-color: #4caf50;
+            background: #f0fff0;
+        }
+        
+        .sidebar-section {
+            margin-bottom: 15px;
+        }
+        
+        .sidebar-title {
+            font-weight: bold;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .sidebar-item {
+            padding: 3px 0;
+            cursor: pointer;
+            font-size: 12px;
+            color: #333;
+        }
+        
+        .sidebar-item:hover {
+            color: #2196f3;
+        }
+        
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+            padding: 5px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 10000;
+            display: none;
+        }
+        
+        .context-menu-item {
+            padding: 8px 15px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        /* Kirjautumisnäkymä */
+        #login-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 10002;
+            display: none;
+        }
+        
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            min-width: 350px;
+        }
+        
+        .login-logo {
+            font-size: 48px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .login-subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .user-profiles {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        
+        .user-profile {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 2px solid transparent;
+        }
+        
+        .user-profile:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            margin-right: 15px;
+        }
+        
+        .user-info {
+            flex: 1;
+            text-align: left;
+        }
+        
+        .user-name {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 3px;
+        }
+        
+        .user-type {
+            font-size: 12px;
+            color: #666;
+        }
+        
+        .login-actions {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .login-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .login-btn.primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .login-btn.primary:hover {
+            background: #0056b3;
+        }
+        
+        .login-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .login-btn.secondary:hover {
+            background: #545b62;
+        }
+        
+        .current-user-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            z-index: 1001;
+            display: none;
+        }
+        
+        /* Uuden käyttäjän luominen */
+        .create-user-form {
+            display: none;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ced4da;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        #game-over-message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(255, 255, 255, 0.9);
+            border: 2px solid #f44336;
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            font-size: 1.5em;
+            color: #333;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            display: none;
+        }
+        .context-menu-item:hover {
+            background: #f0f0f0;
+        }
     </style>
 </head>
-<body>
-    <div class="desktop">
+<body data-theme="blue">
+    <!-- Kirjautumisnäkymä -->
+    <div id="login-screen">
+        <div class="login-container">
+            <div class="login-logo">PigOS</div>
+            <div class="login-subtitle">Valitse käyttäjä kirjautuaksesi</div>
+            
+            <div class="user-profiles" id="user-profiles">
+                <!-- Käyttäjäprofiilit lisätään tähän -->
+            </div>
+            
+            <div class="login-actions">
+                <button class="login-btn secondary" onclick="toggleCreateUser()">➕ Uusi käyttäjä</button>
+                <button class="login-btn secondary" onclick="rebootFromLogin()">🔄 Käynnistä uudelleen</button>
+                <button class="login-btn secondary" onclick="shutdownFromLogin()">⏻ Sammuta</button>
+            </div>
+            
+            <!-- Uuden käyttäjän luomislomake -->
+            <div class="create-user-form" id="create-user-form">
+                <div class="form-group">
+                    <label>Käyttäjänimi:</label>
+                    <input type="text" id="new-username" placeholder="Syötä käyttäjänimi">
+                </div>
+                <div class="form-group">
+                    <label>Avatar:</label>
+                    <select id="new-avatar">
+                        <option value="👤">👤 Henkilö</option>
+                        <option value="🐷">🐷 Sika</option>
+                        <option value="🤖">🤖 Robotti</option>
+                        <option value="👩">👩 Nainen</option>
+                        <option value="👨">👨 Mies</option>
+                        <option value="🦄">🦄 Yksisarvinen</option>
+                        <option value="🐱">🐱 Kissa</option>
+                        <option value="🐶">🐶 Koira</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Käyttäjätyyppi:</label>
+                    <select id="new-usertype">
+                        <option value="user">Tavallinen käyttäjä</option>
+                        <option value="admin">Järjestelmänvalvoja</option>
+                    </select>
+                </div>
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="login-btn primary" onclick="createNewUser()">Luo käyttäjä</button>
+                    <button class="login-btn secondary" onclick="toggleCreateUser()">Peruuta</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nykyisen käyttäjän tiedot -->
+    <div class="current-user-info" id="current-user-info">
+        <span id="current-user-display"></span>
+    </div>
+
+    <!-- BIOS-käynnistysnäyttö -->
+    <div id="bios-screen">
+        <div class="bios-content">
+            <div class="bios-logo">PigOS BIOS</div>
+            
+            <div class="bios-line" style="animation-delay: 0.5s;">PigOS BIOS (Version 1.0.0)</div>
+            <div class="bios-line" style="animation-delay: 1s;">CPU: PigOS Virtual CPU @ 3.2GHz</div>
+            <div class="bios-line" style="animation-delay: 1.5s;">Memory: 8192MB OK</div>
+            <div class="bios-line" style="animation-delay: 2s;">Storage: Virtual SSD 128GB</div>
+            <div class="bios-line" style="animation-delay: 2.5s;">Initializing hardware...</div>
+            <div class="bios-line" style="animation-delay: 3s;">Loading operating system...</div>
+            
+            <div class="progress-container">
+                <div class="progress-bar" id="bios-progress"></div>
+            </div>
+            
+            <div class="bios-line" style="animation-delay: 4s; margin-top: 20px;">Press F2 to enter SETUP</div>
+            <div class="desktop-icon" onclick="openApp('snake')">
+                <div class="icon-image">🐍</div>
+                <div class="icon-label">Matopeli</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Logo animaatio -->
+    <div class="logo-animation" id="logo-animation">
+        <div class="logo">PigOS</div>
+    </div>
+
+    <!-- Sammutus/uudelleenkäynnistys näyttö -->
+    <div id="shutdown-screen">
+        <div id="shutdown-message">Sammutetaan...</div>
+    </div>
+
+    <!-- Normaali PigOS-käyttöliittymä -->
+    <div class="desktop" id="desktop" style="display: none;">
         <div class="desktop-icons">
             <div class="desktop-icon" onclick="openApp('settings')">
                 <div class="icon-image">⚙️</div>
@@ -54,17 +725,62 @@
                 <div class="icon-image">ℹ️</div>
                 <div class="icon-label">Tietoa</div>
             </div>
+            <div class="desktop-icon" onclick="openApp('filemanager')">
+                <div class="icon-image">📁</div>
+                <div class="icon-label">Tiedostot</div>
+            </div>
         </div>
     </div>
 
-    <div class="taskbar">
-        <button class="start-button" onclick="toggleStartMenu()">Käynnistä</button>
-        <div style="margin-left: auto;">
+    <div class="taskbar" id="taskbar" style="display: none;">
+        <div class="taskbar-left">
+            <button class="start-button" onclick="toggleStartMenu()">Käynnistä</button>
+        </div>
+        <div class="taskbar-right">
             <span id="clock">00:00</span> | 
             <span id="version">v1.0.0</span>
+            <button class="taskbar-button" id="volume-control" onclick="toggleMute()">🔊</button>
         </div>
     </div>
 
+    <!-- Käynnistä-valikko -->
+    <div id="start-menu">
+        <div class="start-menu-item" onclick="openApp('settings')">
+            <div class="icon">⚙️</div>
+            <div>Asetukset</div>
+        </div>
+        <div class="start-menu-item" onclick="openApp('info')">
+            <div class="icon">ℹ️</div>
+            <div>Tietoa</div>
+        </div>
+        <div class="start-menu-item" onclick="openApp('filemanager')">
+            <div class="icon">📁</div>
+            <div>Tiedostot</div>
+        </div>
+        <div class="start-menu-item" onclick="openApp('snake')">
+            <div class="icon">🐍</div>
+            <div>Matopeli</div>
+        </div>
+        <hr style="border: none; border-top: 1px solid #ddd; margin: 10px 0;">
+        <div class="start-menu-item" onclick="toggleCreateUser()">
+            <div class="icon">➕</div>
+            <div>Luo käyttäjä</div>
+        </div>
+        <div class="start-menu-item" onclick="UserManager.logout()">
+            <div class="icon">👤</div>
+            <div>Kirjaudu ulos</div>
+        </div>
+        <div class="start-menu-item" onclick="rebootSystem()">
+            <div class="icon">🔄</div>
+            <div>Käynnistä uudelleen</div>
+        </div>
+        <div class="start-menu-item" onclick="shutdownSystem()">
+            <div class="icon">⏻</div>
+            <div>Sammuta</div>
+        </div>
+    </div>
+
+    <!-- Asetukset-ikkuna -->
     <div class="window" id="settings-window">
         <div class="window-header">
             <div class="window-title">⚙️ Asetukset</div>
@@ -75,6 +791,22 @@
         </div>
         <div class="window-content">
             <h2>Järjestelmän asetukset</h2>
+            
+            <div class="setting-item" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                <h3>💾 Tallennustila</h3>
+                <p>Seuraa tallennustilan käyttöä</p>
+                <div id="storage-info" style="margin: 15px 0;">
+                    <!-- Tallennustilan tiedot renderöidään tähän -->
+                </div>
+                <button onclick="updateStorageInfo()" style="background: #28a745; color: white; padding: 8px 16px; 
+                border: none; border-radius: 4px; cursor: pointer; margin: 5px 0;">
+                    🔄 Päivitä tiedot
+                </button>
+                <button onclick="clearUserData()" style="background: #dc3545; color: white; padding: 8px 16px; 
+                border: none; border-radius: 4px; cursor: pointer; margin: 5px 0 5px 10px;">
+                    🗑️ Tyhjennä tiedot
+                </button>
+            </div>
             
             <div class="setting-item" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px;">
                 <h3>🔄 Järjestelmän päivitykset</h3>
@@ -94,7 +826,7 @@
                     <p>🆕 Viimeisin versio: <strong id="latest-version">-</strong></p>
                 </div>
             </div>
-
+            
             <div class="setting-item" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px;">
                 <h3>🎨 Ulkoasu</h3>
                 <label>Teema:</label>
@@ -104,9 +836,19 @@
                     <option value="light">Vaalea</option>
                 </select>
             </div>
+            
+            <div class="setting-item" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-radius: 8px;">
+                <h3>📝 Päivitysloki</h3>
+                <p>Tarkastele asennettuja järjestelmäpäivityksiä:</p>
+                <div id="update-log-container" style="margin-top: 15px;">
+                    <!-- Päivitysloki renderöidään tähän -->
+                    <p style="color: #999;">Päivityksiä ei ole vielä asennettu.</p>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Tietoa-ikkuna -->
     <div class="window" id="info-window">
         <div class="window-header">
             <div class="window-title">ℹ️ Tietoa PigOS:ista</div>
@@ -126,186 +868,1455 @@
                     <li>Teemavaihto</li>
                     <li>Työpöytäympäristö</li>
                     <li>Asetusvalikko</li>
+                    <li>BIOS-käynnistysnäyttö</li>
+                    <li>Logo-animaatio</li>
                 </ul>
             </div>
             
             <div style="margin: 20px 0; padding: 15px; background: #fff3cd; border-radius: 8px; border-left: 4px solid #ffc107;">
-                <h3>🔄 Päivitysohjeet:</h3>
+                <h3>📄 Päivitysohjeet:</h3>
                 <p>Päivitykset tarkistetaan manuaalisesti asetuksista.</p>
                 <p>Uusi versio latautuu automaattisesti GitHubista.</p>
             </div>
         </div>
     </div>
 
-    <div class="update-notification" id="update-notification">
-        <h3 style="margin: 0 0 10px 0;">🔄 Uusi päivitys saatavilla!</h3>
-        <p id="update-message" style="margin: 0 0 15px 0;">Versio v1.1.0 on nyt saatavilla</p>
-        <div style="display: flex; gap: 10px;">
-            <button onclick="installUpdate()" style="background: #4CAF50; color: white; padding: 8px 16px; 
-            border: none; border-radius: 4px; cursor: pointer; flex: 1;">
-                📥 Asenna päivitys
-            </button>
-            <button onclick="hideUpdateNotification()" style="background: #f44336; color: white; padding: 8px 16px; 
-            border: none; border-radius: 4px; cursor: pointer; flex: 1;">
-                ❌ Sulje
-            </button>
+    <!-- Matopeli-ikkuna -->
+    <div class="window" id="snake-window">
+        <div class="window-header">
+            <div class="window-title">🐍 Matopeli</div>
+            <div class="window-controls">
+                <button onclick="closeApp('snake')" style="background: #ff4757; color: white; border: none; 
+                border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+            </div>
+        </div>
+        <div class="window-content">
+            <canvas id="snake-canvas" width="400" height="400"></canvas>
+            <div id="snake-controls">
+                <p>Käytä nuolinäppäimiä. Syö ruokaa!</p>
+                <p id="snake-score">Pisteet: 0</p>
+            </div>
+            <div id="game-over-message" style="display: none;">
+                <p>Peli ohi!</p>
+                <p id="final-score"></p>
+                <button onclick="restartSnakeGame()">Aloita uudelleen</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Tiedostonhallinta-ikkuna -->
+    <div class="window" id="filemanager-window">
+        <div class="window-header">
+            <div class="window-title">📁 Tiedostot</div>
+            <div class="window-controls">
+                <button onclick="closeApp('filemanager')" style="background: #ff4757; color: white; border: none; 
+                border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+            </div>
+        </div>
+        <div class="window-content" style="padding: 0;">
+            <div class="file-manager">
+                <div class="file-sidebar">
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Sijainnit</div>
+                        <div class="sidebar-item" onclick="navigateToFolder('desktop')">🖥️ Työpöytä</div>
+                        <div class="sidebar-item" onclick="navigateToFolder('documents')">📄 Asiakirjat</div>
+                        <div class="sidebar-item" onclick="navigateToFolder('downloads')">⬇️ Lataukset</div>
+                        <div class="sidebar-item" onclick="navigateToFolder('passwords')">🔐 Salasanat</div>
+                        <div class="sidebar-item" onclick="navigateToFolder('pictures')">🖼️ Kuvat</div>
+                        <div class="sidebar-item" onclick="navigateToFolder('passwords')">🔐 Salasanat</div>
+                    </div>
+                    <div class="sidebar-section">
+                        <div class="sidebar-title">Toiminnot</div>
+                        <div class="sidebar-item" onclick="createNewFolder()">📁 Uusi kansio</div>
+                        <div class="sidebar-item" onclick="uploadFile()">⬆️ Lataa tiedosto</div>
+                    </div>
+                </div>
+                <div class="file-main">
+                    <div class="file-toolbar">
+                        <button onclick="goBack()">← Takaisin</button>
+                        <button onclick="goForward()">Eteenpäin →</button>
+                        <button onclick="refreshFolder()">🔄 Päivitä</button>
+                        <button onclick="createNewFolder()">📁 Uusi kansio</button>
+                        <button onclick="deleteSelected()">🗑️ Poista</button>
+                    </div>
+                    <div class="file-path" id="current-path">📁 Työpöytä</div>
+                    <div class="file-content" id="file-content">
+                        <div class="file-upload-area" id="upload-area">
+                            <p>📁 Vedä tiedostoja tähän tai klikkaa ladataksesi</p>
+                            <input type="file" id="file-input" multiple style="display: none;">
+                        </div>
+                        <div id="file-list"></div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
+    <!-- Käyttäjänluomisikkuna -->
+    <div class="window" id="create-user-window">
+        <div class="window-header">
+            <div class="window-title">➕ Luo uusi käyttäjä</div>
+            <div class="window-controls">
+                <button onclick="closeApp('create-user')" style="background: #ff4757; color: white; border: none; 
+                border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+            </div>
+        </div>
+        <div class="window-content">
+            <h2>Uuden käyttäjän luominen</h2>
+            <p style="color: #666; margin-bottom: 20px;">Luo oma henkilökohtainen käyttäjätilin 5MB tallennustilalla.</p>
+            
+            <div class="form-group">
+                <label>Käyttäjänimi:</label>
+                <input type="text" id="new-username" placeholder="Syötä käyttäjänimi" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px;">
+            </div>
+            <div class="form-group">
+                <label>Avatar:</label>
+                <select id="new-avatar" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px;">
+                    <option value="👤">👤 Henkilö</option>
+                    <option value="👩">👩 Nainen</option>
+                    <option value="👨">👨 Mies</option>
+                    <option value="🐷">🐷 Sika</option>
+                    <option value="🤖">🤖 Robotti</option>
+                    <option value="🦄">🦄 Yksisarvinen</option>
+                    <option value="🐱">🐱 Kissa</option>
+                    <option value="🐶">🐶 Koira</option>
+                    <option value="🐸">🐸 Sammakko</option>
+                    <option value="🦊">🦊 Kettu</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Käyttäjätyyppi:</label>
+                <select id="new-usertype" style="width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 5px; margin-top: 5px;">
+                    <option value="user">Tavallinen käyttäjä</option>
+                    <option value="admin">Järjestelmänvalvoja</option>
+                </select>
+            </div>
+            
+            <div style="margin-top: 30px; text-align: center;">
+                <button onclick="createNewUser()" style="background: #007bff; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; margin-right: 10px;">
+                    ✅ Luo käyttäjä
+                </button>
+                <button onclick="closeApp('create-user')" style="background: #6c757d; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+                    ❌ Peruuta
+                </button>
+            </div>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #f8f9fa; border-radius: 8px; font-size: 14px;">
+                <h4 style="margin-top: 0;">💡 Mitä saat:</h4>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                    <li>5MB henkilökohtaista tallennustilaa</li>
+                    <li>Omat kansiot (Työpöytä, Asiakirjat, Kuvat, Salasanat)</li>
+                    <li>Mahdollisuus tallentaa tekstitiedostoja</li>
+                    <li>Salasanojen turvallinen tallennus</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Kontekstivalikko -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" onclick="openFile()">📂 Avaa</div>
+        <div class="context-menu-item" onclick="renameFile()">✏️ Nimeä uudelleen</div>
+        <div class="context-menu-item" onclick="deleteFile()">🗑️ Poista</div>
+        <div class="context-menu-item" onclick="getFileInfo()">ℹ️ Ominaisuudet</div>
+    </div>
+    
+    <!-- Yleinen ilmoitusikkuna -->
+    <div class="window" id="message-box-window">
+        <div class="window-header">
+            <div class="window-title" id="message-box-title">Ilmoitus</div>
+            <div class="window-controls">
+                <button onclick="closeApp('message-box')" style="background: #ff4757; color: white; border: none; 
+                border-radius: 50%; width: 30px; height: 30px; cursor: pointer;">×</button>
+            </div>
+        </div>
+        <div class="window-content">
+            <p id="message-box-content"></p>
+            <button onclick="closeApp('message-box')">OK</button>
+        </div>
+    </div>
+
+    <!-- JavaScript-koodi -->
     <script>
-        // PÄIVITYSJÄRJESTELMÄ GitHubille
-        class GitHubUpdateManager {
-            constructor() {
-                this.currentVersion = localStorage.getItem('pigos_version') || '1.0.0';
-                this.updateUrl = 'https://raw.githubusercontent.com/sikasaatana/PigOS-Project/main/version.json';
-                this.isChecking = false;
-            }
+        // BIOS-käynnistyssekvenssi
+        document.addEventListener('DOMContentLoaded', function() {
+            // Lataa tallennetut asetukset heti
+            loadSavedSettings();
+            
+            // Alusta ääniefektit
+            PigOSAudio.init();
+            
+            // Alusta käyttäjäjärjestelmä
+            UserManager.init();
+            
+            // BIOS-työpalkin animointi
+            setTimeout(function() {
+                document.getElementById('bios-progress').style.width = '25%';
+            }, 3500);
+            
+            setTimeout(function() {
+                document.getElementById('bios-progress').style.width = '50%';
+            }, 4000);
+            
+            setTimeout(function() {
+                document.getElementById('bios-progress').style.width = '75%';
+            }, 4500);
+            
+            setTimeout(function() {
+                document.getElementById('bios-progress').style.width = '100%';
+            }, 5000);
+            
+            // Piilota BIOS-näyttö ja näytä logo-animaatio
+            setTimeout(function() {
+                document.getElementById('bios-screen').style.display = 'none';
+                document.getElementById('logo-animation').classList.add('visible');
+            }, 5500);
+            
+            // Piilota logo-animaatio ja näytä työpöytä
+            setTimeout(function() {
+                document.getElementById('logo-animation').classList.remove('visible');
+                
+                // Jos ei ole kirjautunut käyttäjää, näytä kirjautumisnäkymä
+                if (!UserManager.currentUser) {
+                    // Kokeile automaattista kirjautumista
+                    UserManager.autoLogin();
+                } else {
+                    // Näytä työpöytä jos käyttäjä on jo kirjautunut
+                    document.getElementById('desktop').style.display = 'block';
+                    document.getElementById('taskbar').style.display = 'flex';
+                    UserManager.showCurrentUser();
+                }
+                
+                // Soita käynnistysääni kun järjestelmä on valmis
+                setTimeout(() => {
+                    PigOSAudio.playStartupSound();
+                }, 500);
+            }, 7500);
+        });
 
-            async checkForUpdates() {
-                if (this.isChecking) return;
+        // Käyttäjähallintajärjestelmä
+        const UserManager = {
+            currentUser: null,
+            users: [],
+            
+            // Alusta käyttäjäjärjestelmä
+            init: function() {
+                this.loadUsers();
+                if (this.users.length === 0) {
+                    // Luo oletuskäyttäjät jos ei ole yhtään
+                    this.createDefaultUsers();
+                }
+                this.showLoginScreen();
+            },
+            
+            // Luo oletuskäyttäjät
+            createDefaultUsers: function() {
+                const defaultUsers = [
+                    {id: 'admin', username: 'Järjestelmänvalvoja', avatar: '🤖', type: 'admin', created: new Date().toISOString()}
+                ];
                 
-                this.isChecking = true;
-                this.showUpdateInfo('<span class="loading"></span> Tarkistetaan päivityksiä...');
+                defaultUsers.forEach(user => {
+                    this.users.push(user);
+                    // Luo käyttäjäkohtainen tiedostojärjestelmä
+                    this.createUserFileSystem(user.id);
+                });
                 
-                try {
-                    const response = await fetch(this.updateUrl + '?t=' + Date.now());
+                this.saveUsers();
+            },
+            
+            // Luo käyttäjäkohtainen tiedostojärjestelmä
+            createUserFileSystem: function(userId) {
+                const userPrefix = userId + '_';
+                const userName = this.users.find(u => u.id === userId)?.username || userId;
+                
+                FileSystem.folders[userPrefix + 'desktop'] = {
+                    name: 'Työpöytä',
+                    files: [
+                        {name: `Tervetuloa.txt`, type: 'text', size: '1.0 KB', content: `Tervetuloa PigOS:iin, ${userName}!\n\nTämä on sinun henkilökohtainen työpöytäsi.\n\nTallennustila: 5MB\nVoit tallentaa:\n- Tekstitiedostoja\n- Käyttäjätunnuksia\n- Omia tiedostojasi\n\nNauti PigOS:n käytöstä!`},
+                        {name: 'Tallennustila.txt', type: 'text', size: '0.5 KB', content: 'PigOS Tallennustila\n\nSinulla on 5MB tallennustilaa käytössäsi.\nVoit tarkistaa käytetyn tilan asetuksista.'}
+                    ],
+                    folders: [userPrefix + 'documents', userPrefix + 'pictures', userPrefix + 'downloads', userPrefix + 'passwords']
+                };
+                
+                FileSystem.folders[userPrefix + 'documents'] = {name: 'Asiakirjat', files: [], folders: []};
+                FileSystem.folders[userPrefix + 'pictures'] = {name: 'Kuvat', files: [], folders: []};
+                FileSystem.folders[userPrefix + 'downloads'] = {name: 'Lataukset', files: [], folders: []};
+                FileSystem.folders[userPrefix + 'passwords'] = {
+                    name: 'Salasanat', 
+                    files: [
+                        {name: 'Salasana-ohje.txt', type: 'text', size: '0.8 KB', content: 'Salasanojen tallentaminen\n\nVoit tallentaa käyttäjätunnuksia ja salasanoja turvallisesti tähän kansioon.\n\nMuista:\n- Älä jaa salasanojasi\n- Käytä vahvoja salasanoja\n- Vaihda salasanoja säännöllisesti'}
+                    ], 
+                    folders: []
+                };
+            },
+            
+            // Näytä kirjautumisnäkymä
+            showLoginScreen: function() {
+                this.renderUserProfiles();
+                document.getElementById('login-screen').style.display = 'flex';
+            },
+            
+            // Piirrä käyttäjäprofiilit
+            renderUserProfiles: function() {
+                const container = document.getElementById('user-profiles');
+                container.innerHTML = '';
+                
+                this.users.forEach(user => {
+                    const userElement = document.createElement('div');
+                    userElement.className = 'user-profile';
+                    userElement.innerHTML = `
+                        <div class="user-avatar">${user.avatar}</div>
+                        <div class="user-info">
+                            <div class="user-name">${user.username}</div>
+                            <div class="user-type">${user.type === 'admin' ? 'Järjestelmänvalvoja' : 'Käyttäjä'}</div>
+                        </div>
+                    `;
                     
-                    if (!response.ok) throw new Error('GitHub ei vastaa');
+                    userElement.addEventListener('click', () => {
+                        this.loginUser(user);
+                    });
                     
-                    const data = await response.json();
-                    
-                    document.getElementById('latest-version').textContent = 'v' + data.latestVersion;
-                    
-                    if (this.isNewVersionAvailable(data.latestVersion)) {
-                        this.showUpdateInfo('🎯 <strong>Uusi päivitys saatavilla!</strong> Versio v' + data.latestVersion);
-                        this.showUpdateNotification('Uusi versio v' + data.latestVersion + ' saatavilla. Klikkaa asentaaksesi.');
-                    } else {
-                        this.showUpdateInfo('✅ <strong>Järjestelmä on ajan tasalla</strong>');
+                    container.appendChild(userElement);
+                });
+            },
+            
+            // Kirjaa käyttäjä sisään
+            loginUser: function(user) {
+                this.currentUser = user;
+                PigOSAudio.playSuccessSound();
+                
+                // Vaihda tiedostojärjestelmä käyttäjäkohtaiseksi
+                this.switchToUserFileSystem(user.id);
+                
+                // Piilota kirjautumisnäkymä
+                document.getElementById('login-screen').style.display = 'none';
+                
+                // Näytä käyttäjätiedot
+                this.showCurrentUser();
+                
+                // Tallenna viimeisin kirjautuminen
+                PigOSStorage.save('lastUser', user.id);
+                
+                console.log('Käyttäjä kirjautunut:', user.username);
+            },
+            
+            // Vaihda käyttäjäkohtaiseen tiedostojärjestelmään
+            switchToUserFileSystem: function(userId) {
+                const userPrefix = userId + '_';
+                FileSystem.currentPath = userPrefix + 'desktop';
+                FileSystem.history = [userPrefix + 'desktop'];
+                FileSystem.historyIndex = 0;
+            },
+            
+            // Näytä nykyisen käyttäjän tiedot
+            showCurrentUser: function() {
+                if (this.currentUser) {
+                    const display = document.getElementById('current-user-display');
+                    display.textContent = `${this.currentUser.avatar} ${this.currentUser.username}`;
+                    document.getElementById('current-user-info').style.display = 'block';
+                }
+            },
+            
+            // Luo uusi käyttäjä
+            createUser: function(username, avatar, usertype) {
+                if (!username.trim()) {
+                    alert('Käyttäjänimi ei voi olla tyhjä!');
+                    return false;
+                }
+                
+                // Tarkista että käyttäjänimi on uniikki
+                if (this.users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
+                    alert('Käyttäjänimi on jo käytössä!');
+                    return false;
+                }
+                
+                const userId = 'user_' + Date.now();
+                const newUser = {
+                    id: userId,
+                    username: username.trim(),
+                    avatar: avatar,
+                    type: usertype,
+                    created: new Date().toISOString()
+                };
+                
+                this.users.push(newUser);
+                this.createUserFileSystem(userId);
+                this.saveUsers();
+                this.renderUserProfiles();
+                
+                PigOSAudio.playSuccessSound();
+                return true;
+            },
+            
+            // Kirjaa ulos
+            logout: function() {
+                this.currentUser = null;
+                document.getElementById('current-user-info').style.display = 'none';
+                this.showLoginScreen();
+                PigOSStorage.remove('lastUser');
+                PigOSAudio.playClickSound();
+            },
+            
+            // Tallenna käyttäjät ja tiedostojärjestelmä
+            saveUsers: function() {
+                PigOSStorage.save('users', this.users);
+                // Tallenna myös tiedostojärjestelmä
+                PigOSStorage.save('fileSystem', FileSystem.folders);
+                console.log('Käyttäjät ja tiedostot tallennettu');
+            },
+            
+            // Lataa käyttäjät ja tiedostojärjestelmä
+            loadUsers: function() {
+                this.users = PigOSStorage.load('users', []);
+                
+                // Lataa myös tiedostojärjestelmä
+                const savedFileSystem = PigOSStorage.load('fileSystem', null);
+                if (savedFileSystem) {
+                    // Yhdistä tallennetut tiedostot olemassa oleviin
+                    Object.keys(savedFileSystem).forEach(key => {
+                        FileSystem.folders[key] = savedFileSystem[key];
+                    });
+                    console.log('Tiedostojärjestelmä ladattu');
+                }
+            },
+            
+            // Automaattinen kirjautuminen
+            autoLogin: function() {
+                const lastUserId = PigOSStorage.load('lastUser');
+                if (lastUserId) {
+                    const user = this.users.find(u => u.id === lastUserId);
+                    if (user) {
+                        setTimeout(() => {
+                            this.loginUser(user);
+                        }, 1000);
                     }
+                }
+            }
+        };
+        const FileSystem = {
+            currentPath: 'desktop',
+            selectedFile: null,
+            history: ['desktop'],
+            historyIndex: 0,
+            
+            // Virtuaaliset kansiot ja tiedostot
+            folders: {
+                desktop: {
+                    name: 'Työpöytä',
+                    files: [
+                        {name: 'Tervetuloa.txt', type: 'text', size: '1.2 KB', content: 'Tervetuloa PigOS:iin!\nTämä on virtuaalinen tiedostojärjestelmä.'},
+                        {name: 'Tietoa.txt', type: 'text', size: '0.8 KB', content: 'PigOS v1.0.0\nHTML-pohjainen käyttöjärjestelmä'},
+                    ],
+                    folders: ['documents', 'pictures']
+                },
+                documents: {
+                    name: 'Asiakirjat',
+                    files: [
+                        {name: 'Asetukset.txt', type: 'text', size: '0.5 KB', content: 'Järjestelmäasetukset tallennetaan automaattisesti.'},
+                    ],
+                    folders: []
+                },
+                downloads: {
+                    name: 'Lataukset',
+                    files: [],
+                    folders: []
+                },
+                pictures: {
+                    name: 'Kuvat',
+                    files: [],
+                    folders: []
+                }
+            },
+            
+            // Navigoi kansioon
+            navigateTo: function(folderName) {
+                if (this.folders[folderName]) {
+                    this.currentPath = folderName;
                     
-                } catch (error) {
-                    console.error('Päivitystarkistus epäonnistui:', error);
-                    this.showUpdateInfo('❌ <strong>Päivitysten tarkistus epäonnistui</strong><br><small>Yritä myöhemmin uudelleen</small>');
-                } finally {
-                    this.isChecking = false;
+                    // Päivitä historia
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                    this.history.push(folderName);
+                    this.historyIndex = this.history.length - 1;
+                    
+                    this.refreshView();
+                    PigOSAudio.playClickSound();
                 }
-            }
-
-            isNewVersionAvailable(latestVersion) {
-                const current = this.currentVersion.split('.').map(Number);
-                const latest = latestVersion.split('.').map(Number);
-                
-                for (let i = 0; i < Math.max(current.length, latest.length); i++) {
-                    if ((latest[i] || 0) > (current[i] || 0)) return true;
-                    if ((latest[i] || 0) < (current[i] || 0)) return false;
+            },
+            
+            // Mene takaisin
+            goBack: function() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.currentPath = this.history[this.historyIndex];
+                    this.refreshView();
+                    PigOSAudio.playClickSound();
                 }
-                return false;
-            }
-
-            async installUpdate() {
-                this.showUpdateInfo('<span class="loading"></span> Asennetaan päivitystä...');
+            },
+            
+            // Mene eteenpäin
+            goForward: function() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.currentPath = this.history[this.historyIndex];
+                    this.refreshView();
+                    PigOSAudio.playClickSound();
+                }
+            },
+            
+            // Luo uusi kansio
+            createFolder: function(name) {
+                if (!name) name = prompt('Anna kansion nimi:');
+                if (name && !this.folders[this.currentPath + '_' + name]) {
+                    const folderId = this.currentPath + '_' + name;
+                    this.folders[folderId] = {
+                        name: name,
+                        files: [],
+                        folders: []
+                    };
+                    this.folders[this.currentPath].folders.push(folderId);
+                    this.refreshView();
+                    PigOSAudio.playSuccessSound();
+                    
+                    // Tallenna muutokset
+                    UserManager.saveUsers();
+                }
+            },
+            
+            // Lisää tiedosto
+            addFile: function(file) {
+                const currentFolder = this.folders[this.currentPath];
+                const fileObj = {
+                    name: file.name,
+                    type: this.getFileType(file.name),
+                    size: this.formatFileSize(file.size),
+                    content: null,
+                    realFile: file
+                };
                 
+                // Lue tiedoston sisältö jos se on teksti
+                if (file.type.startsWith('text/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        fileObj.content = e.target.result;
+                        // Tallenna tiedostojärjestelmä kun sisältö on ladattu
+                        UserManager.saveUsers();
+                    };
+                    reader.readAsText(file);
+                }
+                
+                currentFolder.files.push(fileObj);
+                this.refreshView();
+                PigOSAudio.playSuccessSound();
+                
+                // Tallenna muutokset
+                UserManager.saveUsers();
+            },
+            
+            // Poista tiedosto
+            deleteFile: function(fileName) {
+                if (confirm(`Haluatko varmasti poistaa tiedoston "${fileName}"?`)) {
+                    const currentFolder = this.folders[this.currentPath];
+                    currentFolder.files = currentFolder.files.filter(f => f.name !== fileName);
+                    this.refreshView();
+                    PigOSAudio.playClickSound();
+                    
+                    // Tallenna muutokset
+                    UserManager.saveUsers();
+                }
+            },
+            
+            // Päivitä näkymä
+            refreshView: function() {
+                const pathElement = document.getElementById('current-path');
+                const listElement = document.getElementById('file-list');
+                const currentFolder = this.folders[this.currentPath];
+                
+                pathElement.textContent = `📁 ${currentFolder.name}`;
+                listElement.innerHTML = '';
+                
+                // Näytä kansiot
+                currentFolder.folders.forEach(folderId => {
+                    const folder = this.folders[folderId];
+                    const item = this.createFileItem(folder.name, 'folder', '', folderId);
+                    listElement.appendChild(item);
+                });
+                
+                // Näytä tiedostot
+                currentFolder.files.forEach(file => {
+                    const item = this.createFileItem(file.name, file.type, file.size, null);
+                    listElement.appendChild(item);
+                });
+            },
+            
+            // Luo tiedosto-elementti
+            createFileItem: function(name, type, size, folderId) {
+                const item = document.createElement('div');
+                item.className = 'file-item';
+                item.innerHTML = `
+                    <span class="icon">${this.getFileIcon(type)}</span>
+                    <span class="name">${name}</span>
+                    <span class="size">${size}</span>
+                `;
+                
+                item.addEventListener('click', () => {
+                    // Poista aiempi valinta
+                    document.querySelectorAll('.file-item').forEach(el => el.classList.remove('selected'));
+                    item.classList.add('selected');
+                    this.selectedFile = {name, type, size, folderId};
+                });
+                
+                item.addEventListener('dblclick', () => {
+                    if (folderId) {
+                        this.navigateTo(folderId);
+                    } else {
+                        this.openFile(name);
+                    }
+                });
+                
+                item.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    this.showContextMenu(e.clientX, e.clientY, name, type);
+                });
+                
+                return item;
+            },
+            
+            // Hae tiedostotyypin ikoni
+            getFileIcon: function(type) {
+                const icons = {
+                    folder: '📁',
+                    text: '📄',
+                    image: '🖼️',
+                    audio: '🎵',
+                    video: '🎬',
+                    pdf: '📕',
+                    zip: '📦'
+                };
+                return icons[type] || '📄';
+            },
+            
+            // Määritä tiedostotyyppi
+            getFileType: function(fileName) {
+                const ext = fileName.split('.').pop().toLowerCase();
+                if (['jpg', 'jpeg', 'png', 'gif', 'bmp'].includes(ext)) return 'image';
+                if (['mp3', 'wav', 'ogg'].includes(ext)) return 'audio';
+                if (['mp4', 'avi', 'mov'].includes(ext)) return 'video';
+                if (['pdf'].includes(ext)) return 'pdf';
+                if (['zip', 'rar', '7z'].includes(ext)) return 'zip';
+                return 'text';
+            },
+            
+            // Muotoile tiedostokoko
+            formatFileSize: function(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+            },
+            
+            // Näytä kontekstivalikko
+            showContextMenu: function(x, y, fileName, fileType) {
+                const menu = document.getElementById('context-menu');
+                menu.style.left = x + 'px';
+                menu.style.top = y + 'px';
+                menu.style.display = 'block';
+                this.selectedFile = {name: fileName, type: fileType};
+            },
+            
+            // Avaa tiedosto
+            openFile: function(fileName) {
+                const file = this.folders[this.currentPath].files.find(f => f.name === fileName);
+                if (file && file.content) {
+                    alert(`${file.name}:\n\n${file.content}`);
+                } else {
+                    alert(`Tiedostoa "${fileName}" ei voida avata.`);
+                }
+                PigOSAudio.playClickSound();
+            }
+        };
+        const PigOSAudio = {
+            // Web Audio API konteksti
+            audioContext: null,
+            
+            init: function() {
                 try {
-                    // Simuloi päivityksen asennusta
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-                    
-                    localStorage.setItem('pigos_version', '1.1.0');
-                    this.currentVersion = '1.1.0';
-                    document.getElementById('current-version').textContent = 'v1.1.0';
-                    document.getElementById('version').textContent = 'v1.1.0';
-                    
-                    this.showUpdateInfo('✅ <strong>Päivitys asennettu onnistuneesti!</strong>');
-                    this.hideUpdateNotification();
-                    
-                    setTimeout(() => {
-                        alert('🎉 PigOS päivitetty versioon v1.1.0!\n\nKäynnistä sovellus uudelleen nähdäksesi uudet ominaisuudet.');
-                    }, 500);
-                    
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    console.log('Ääniefektit alustettu');
+                    return true;
                 } catch (error) {
-                    this.showUpdateInfo('❌ <strong>Päivityksen asennus epäonnistui</strong>');
+                    console.log('Ääniefektit eivät ole tuettuja');
+                    return false;
                 }
-            }
-
-            showUpdateInfo(message) {
-                const infoDiv = document.getElementById('update-info');
-                if (infoDiv) {
-                    infoDiv.innerHTML = `<p>${message}</p>`;
-                }
-            }
-
-            showUpdateNotification(message) {
-                const notification = document.getElementById('update-notification');
-                const messageElement = document.getElementById('update-message');
+            },
+            
+            // Soita sävel tietyllä taajuudella ja kestolla
+            playTone: function(frequency, duration, volume = 0.3) {
+                if (!this.audioContext || isMuted) return;
                 
-                if (notification && messageElement) {
-                    messageElement.textContent = message;
-                    notification.style.display = 'block';
+                const oscillator = this.audioContext.createOscillator();
+                const gainNode = this.audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(this.audioContext.destination);
+                
+                oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
+                oscillator.type = 'square'; // Retro-tyylinen square wave
+                
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + 0.01);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + duration);
+                
+                oscillator.start(this.audioContext.currentTime);
+                oscillator.stop(this.audioContext.currentTime + duration);
+            },
+            
+            // Käynnistysmelodia
+            playStartupSound: function() {
+                if (isMuted) return;
+                
+                const melody = [
+                    {freq: 523, duration: 0.2}, // C5
+                    {freq: 659, duration: 0.2}, // E5
+                    {freq: 784, duration: 0.2}, // G5
+                    {freq: 1047, duration: 0.4}, // C6
+                    {freq: 784, duration: 0.2}, // G5
+                    {freq: 1047, duration: 0.6}  // C6 (pidempi)
+                ];
+                
+                let delay = 0;
+                melody.forEach((note, index) => {
+                    setTimeout(() => {
+                        this.playTone(note.freq, note.duration, 0.2);
+                    }, delay * 1000);
+                    delay += note.duration + 0.05; // Pieni tauko sävelien välillä
+                });
+                
+                console.log('Käynnistysääni soitettu');
+            },
+            
+            // Klikkausääni
+            playClickSound: function() {
+                if (isMuted) return;
+                this.playTone(800, 0.05, 0.1);
+            },
+            
+            // Virheääni
+            playErrorSound: function() {
+                if (isMuted) return;
+                this.playTone(200, 0.3, 0.15);
+            },
+            
+            // Onnistumisääni
+            playSuccessSound: function() {
+                if (isMuted) return;
+                setTimeout(() => this.playTone(523, 0.1, 0.1), 0);
+                setTimeout(() => this.playTone(659, 0.1, 0.1), 100);
+                setTimeout(() => this.playTone(784, 0.2, 0.1), 200);
+            }
+        };
+        const PigOSStorage = {
+            save: function(key, value) {
+                try {
+                    // Käytä in-memory storagea LocalStoragen sijaan
+                    if (!window.pigOSData) window.pigOSData = {};
+                    window.pigOSData[key] = JSON.stringify(value);
+                    console.log(`Tallennettu: ${key} = ${value}`);
+                    return true;
+                } catch (error) {
+                    console.error('Tallennusvirhe:', error);
+                    return false;
+                }
+            },
+            
+            load: function(key, defaultValue = null) {
+                try {
+                    if (!window.pigOSData) window.pigOSData = {};
+                    const value = window.pigOSData[key];
+                    if (value !== undefined) {
+                        return JSON.parse(value);
+                    }
+                    return defaultValue;
+                } catch (error) {
+                    console.error('Latausvirhe:', error);
+                    return defaultValue;
+                }
+            },
+            
+            remove: function(key) {
+                try {
+                    if (!window.pigOSData) window.pigOSData = {};
+                    delete window.pigOSData[key];
+                    return true;
+                } catch (error) {
+                    console.error('Poistamisvirhe:', error);
+                    return false;
+                }
+            },
+            
+            clear: function() {
+                try {
+                    window.pigOSData = {};
+                    return true;
+                } catch (error) {
+                    console.error('Tyhjennysvirhe:', error);
+                    return false;
                 }
             }
+        };
 
-            hideUpdateNotification() {
-                const notification = document.getElementById('update-notification');
-                if (notification) {
-                    notification.style.display = 'none';
-                }
+        // Lataa tallennetut asetukset käynnistyksessä
+        function loadSavedSettings() {
+            // Lataa teema
+            const savedTheme = PigOSStorage.load('theme', 'blue');
+            document.body.setAttribute('data-theme', savedTheme);
+            document.getElementById('theme-select').value = savedTheme;
+            
+            // Lataa ääniasetukset
+            const savedMute = PigOSStorage.load('muted', false);
+            isMuted = savedMute;
+            document.getElementById('volume-control').textContent = isMuted ? '🔇' : '🔊';
+            
+            // Lataa ikkunoiden sijainnit
+            const savedPositions = PigOSStorage.load('windowPositions', {});
+            window.savedWindowPositions = savedPositions;
+            
+            console.log('Asetukset ladattu:', {
+                theme: savedTheme,
+                muted: savedMute,
+                positions: Object.keys(savedPositions).length
+            });
+        }
+
+        // Tallenna ikkunan sijainti kun sitä liikutetaan
+        function saveWindowPosition(windowName, x, y) {
+            if (!window.savedWindowPositions) window.savedWindowPositions = {};
+            window.savedWindowPositions[windowName] = { x: x, y: y };
+            PigOSStorage.save('windowPositions', window.savedWindowPositions);
+        }
+
+        // Palauta ikkunan sijainti
+        function restoreWindowPosition(windowElement, windowName) {
+            const savedPositions = PigOSStorage.load('windowPositions', {});
+            if (savedPositions[windowName]) {
+                const pos = savedPositions[windowName];
+                windowElement.style.left = pos.x + 'px';
+                windowElement.style.top = pos.y + 'px';
+                windowElement.style.transform = 'none';
             }
         }
-
-        // GLOBAALIT FUNKTIOT
-        function checkForUpdates() {
-            if (!window.updateManager) {
-                window.updateManager = new GitHubUpdateManager();
-            }
-            window.updateManager.checkForUpdates();
-        }
-
-        function installUpdate() {
-            if (window.updateManager) {
-                window.updateManager.installUpdate();
-            }
-        }
-
-        function hideUpdateNotification() {
-            if (window.updateManager) {
-                window.updateManager.hideUpdateNotification();
-            }
-        }
-
-        function changeTheme(theme) {
-            localStorage.setItem('pigos_theme', theme);
-            alert('Teema vaihdettu: ' + theme);
-        }
-
-        function openApp(app) {
-            document.getElementById('settings-window').style.display = 'flex';
-        }
-
-        function closeApp(app) {
-            document.getElementById('settings-window').style.display = 'none';
-        }
-
-        function toggleStartMenu() {
-            openApp('settings');
-        }
-
-        // Päivitä kello
         function updateClock() {
             const now = new Date();
-            document.getElementById('clock').textContent = now.toLocaleTimeString('fi-FI');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            document.getElementById('clock').textContent = `${hours}:${minutes}`;
         }
+        
         setInterval(updateClock, 1000);
         updateClock();
 
-        // Alusta versiotiedot
-        document.addEventListener('DOMContentLoaded', () => {
-            const version = localStorage.getItem('pigos_version') || '1.0.0';
-            document.getElementById('current-version').textContent = 'v' + version;
-            document.getElementById('version').textContent = 'v' + version;
+        // Sovellusten hallinta
+        function openApp(appName) {
+            const window = document.getElementById(`${appName}-window`);
+            window.style.display = 'flex';
             
-            const savedTheme = localStorage.getItem('pigos_theme');
-            if (savedTheme) {
-                document.getElementById('theme-select').value = savedTheme;
+            // Soita klikkausääni
+            PigOSAudio.playClickSound();
+            
+            // Palauta tallennettu sijainti
+            restoreWindowPosition(window, appName);
+            
+            if (appName === 'snake') {
+                initSnakeGame();
+            } else if (appName === 'filemanager') {
+                initFileManager();
+            } else if (appName === 'settings') {
+                updateStorageInfo();
             }
+            // Tee ikkuna vedettäväksi
+            makeDraggable(window, appName);
+        }
+
+        function closeApp(appName) {
+            document.getElementById(`${appName}-window`).style.display = 'none';
+            // Soita klikkausääni
+            PigOSAudio.playClickSound();
+            
+            if (appName === 'snake') {
+                snakeGameActive = false;
+            }
+        }
+
+        // Tiedostonhallinnan funktiot
+        function initFileManager() {
+            FileSystem.refreshView();
+            setupFileUpload();
+        }
+        
+        function navigateToFolder(folderName) {
+            FileSystem.navigateTo(folderName);
+        }
+        
+        function goBack() {
+            FileSystem.goBack();
+        }
+        
+        function goForward() {
+            FileSystem.goForward();
+        }
+        
+        function refreshFolder() {
+            FileSystem.refreshView();
+            PigOSAudio.playClickSound();
+        }
+        
+        function createNewFolder() {
+            FileSystem.createFolder();
+        }
+        
+        function deleteSelected() {
+            if (FileSystem.selectedFile) {
+                FileSystem.deleteFile(FileSystem.selectedFile.name);
+            }
+        }
+        
+        function uploadFile() {
+            document.getElementById('file-input').click();
+        }
+        
+        function setupFileUpload() {
+            const uploadArea = document.getElementById('upload-area');
+            const fileInput = document.getElementById('file-input');
+            
+            // Klikkaus lataus
+            uploadArea.addEventListener('click', () => fileInput.click());
+            
+            // Tiedoston valinta
+            fileInput.addEventListener('change', (e) => {
+                Array.from(e.target.files).forEach(file => {
+                    FileSystem.addFile(file);
+                });
+            });
+            
+            // Drag & drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                
+                Array.from(e.dataTransfer.files).forEach(file => {
+                    FileSystem.addFile(file);
+                });
+            });
+        }
+        
+        // Kontekstivalikon funktiot
+        function openFile() {
+            if (FileSystem.selectedFile) {
+                FileSystem.openFile(FileSystem.selectedFile.name);
+            }
+            hideContextMenu();
+        }
+        
+        function renameFile() {
+            if (FileSystem.selectedFile) {
+                const newName = prompt('Anna uusi nimi:', FileSystem.selectedFile.name);
+                if (newName) {
+                    // Toteuta nimeäminen uudelleen
+                    alert('Uudelleennimeäminen tulossa myöhemmässä versiossa!');
+                }
+            }
+            hideContextMenu();
+        }
+        
+        function deleteFile() {
+            if (FileSystem.selectedFile) {
+                FileSystem.deleteFile(FileSystem.selectedFile.name);
+            }
+            hideContextMenu();
+        }
+        
+        function getFileInfo() {
+            if (FileSystem.selectedFile) {
+                const file = FileSystem.selectedFile;
+                alert(`Tiedoston tiedot:\n\nNimi: ${file.name}\nTyyppi: ${file.type}\nKoko: ${file.size}`);
+            }
+            hideContextMenu();
+        }
+        
+        function hideContextMenu() {
+            document.getElementById('context-menu').style.display = 'none';
+        }
+        
+        // Käyttäjähallinnan funktiot
+        function toggleCreateUser() {
+            // Avaa käyttäjänluomisikkuna
+            const createUserWindow = document.getElementById('create-user-window');
+            if (createUserWindow) {
+                createUserWindow.style.display = 'flex';
+                makeDraggable(createUserWindow, 'create-user');
+                document.getElementById('new-username').focus();
+            } else {
+                // Fallback kirjautumisnäkymään
+                const form = document.getElementById('create-user-form');
+                const isVisible = form.style.display === 'block';
+                form.style.display = isVisible ? 'none' : 'block';
+                
+                if (!isVisible) {
+                    document.getElementById('new-username').focus();
+                }
+            }
+            
+            PigOSAudio.playClickSound();
+        }
+        
+        function createNewUser() {
+            const username = document.getElementById('new-username').value;
+            const avatar = document.getElementById('new-avatar').value;
+            const usertype = document.getElementById('new-usertype').value;
+            
+            if (UserManager.createUser(username, avatar, usertype)) {
+                // Tyhjennä lomake
+                document.getElementById('new-username').value = '';
+                document.getElementById('new-avatar').value = '👤';
+                document.getElementById('new-usertype').value = 'user';
+                
+                // Sulje ikkuna
+                closeApp('create-user');
+                
+                alert(`Käyttäjä "${username}" luotu onnistuneesti!\nVoit nyt kirjautua sisään uudella käyttäjällä.`);
+            }
+        }
+        
+        function updateStorageInfo() {
+            const storageInfo = StorageManager.getStorageInfo();
+            const infoElement = document.getElementById('storage-info');
+            
+            infoElement.innerHTML = `
+                <div style="margin-bottom: 10px;">
+                    <strong>Tallennustila:</strong> ${storageInfo.usedFormatted} / ${storageInfo.totalFormatted} (${storageInfo.percentage}%)
+                </div>
+                <div style="background: #e9ecef; border-radius: 10px; height: 20px; overflow: hidden;">
+                    <div style="background: ${storageInfo.percentage > 80 ? '#dc3545' : storageInfo.percentage > 60 ? '#ffc107' : '#28a745'}; 
+                                height: 100%; width: ${storageInfo.percentage}%; transition: all 0.3s;"></div>
+                </div>
+                <div style="margin-top: 5px; font-size: 12px; color: #666;">
+                    Vapaana: ${storageInfo.freeFormatted}
+                </div>
+            `;
+            
+            PigOSAudio.playClickSound();
+        }
+        
+        function clearUserData() {
+            if (confirm('Haluatko varmasti tyhjentää kaikki tallennetut tiedot?\n\nTämä poistaa:\n- Kaikki käyttäjät (paitsi järjestelmänvalvoja)\n- Kaikki tiedostot\n- Kaikki asetukset')) {
+                // Säilytä vain järjestelmänvalvoja
+                const adminUser = UserManager.users.find(u => u.id === 'admin');
+                UserManager.users = adminUser ? [adminUser] : [];
+                
+                // Tyhjennä tallennustila
+                PigOSStorage.clear();
+                
+                // Uudelleenalusta järjestelmä
+                if (adminUser) {
+                    UserManager.createUserFileSystem('admin');
+                    UserManager.saveUsers();
+                }
+                
+                updateStorageInfo();
+                PigOSAudio.playSuccessSound();
+                alert('Tiedot tyhjennetty onnistuneesti!');
+            }
+        }
+        
+        function shutdownFromLogin() {
+            PigOSAudio.playClickSound();
+            setTimeout(() => {
+                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: black; color: white; font-size: 24px;">Järjestelmä on sammutettu</div>';
+            }, 1000);
+        }
+        
+        function rebootFromLogin() {
+            PigOSAudio.playClickSound();
+            
+            // Näytä sammutusruutu
+            document.getElementById('shutdown-screen').style.display = 'flex';
+            document.getElementById('shutdown-message').textContent = 'Käynnistetään uudelleen...';
+            
+            // Uudelleenkäynnistysääni
+            setTimeout(() => {
+                PigOSAudio.playTone(300, 0.2, 0.15);
+                setTimeout(() => PigOSAudio.playTone(400, 0.2, 0.15), 200);
+                setTimeout(() => PigOSAudio.playTone(500, 0.3, 0.15), 400);
+            }, 300);
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        }
+        
+        // Päivitetty kirjautumisen jälkeen työpöydän näyttäminen
+        function showDesktopAfterLogin() {
+            document.getElementById('desktop').style.display = 'block';
+            document.getElementById('taskbar').style.display = 'flex';
+        }
+        
+        // Lisää kirjautumisen jälkeinen toiminnallisuus
+        const originalLoginUser = UserManager.loginUser;
+        UserManager.loginUser = function(user) {
+            originalLoginUser.call(this, user);
+            showDesktopAfterLogin();
+        };
+        // Piilota kontekstivalikko klikkaamalla muualle
+        document.addEventListener('click', () => {
+            hideContextMenu();
+        });
+        function makeDraggable(windowElement) {
+            const header = windowElement.querySelector('.window-header');
+            let isDragging = false;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
+
+            // Resetoi ikkunan sijainti keskelle ensin
+            windowElement.style.left = '50%';
+            windowElement.style.top = '50%';
+            windowElement.style.transform = 'translate(-50%, -50%)';
+
+            function dragStart(e) {
+                if (e.target === header || header.contains(e.target)) {
+                    isDragging = true;
+                    windowElement.style.zIndex = 1000;
+                    
+                    // Hanki nykyinen sijainti
+                    const rect = windowElement.getBoundingClientRect();
+                    currentX = rect.left;
+                    currentY = rect.top;
+                    
+                    if (e.type === "touchstart") {
+                        initialX = e.touches[0].clientX - currentX;
+                        initialY = e.touches[0].clientY - currentY;
+                    } else {
+                        initialX = e.clientX - currentX;
+                        initialY = e.clientY - currentY;
+                    }
+                    
+                    // Vaihda absoluuttiseen sijaintiin
+                    windowElement.style.left = currentX + 'px';
+                    windowElement.style.top = currentY + 'px';
+                    windowElement.style.transform = 'none';
+                }
+            }
+
+            function dragEnd(e) {
+                isDragging = false;
+                windowElement.style.zIndex = 100;
+            }
+
+            function drag(e) {
+                if (isDragging) {
+                    e.preventDefault();
+                    
+                    if (e.type === "touchmove") {
+                        currentX = e.touches[0].clientX - initialX;
+                        currentY = e.touches[0].clientY - initialY;
+                    } else {
+                        currentX = e.clientX - initialX;
+                        currentY = e.clientY - initialY;
+                    }
+
+                    // Rajoita ikkunan liikkuminen näytön sisälle
+                    const maxX = window.innerWidth - windowElement.offsetWidth;
+                    const maxY = window.innerHeight - windowElement.offsetHeight;
+                    
+                    currentX = Math.max(0, Math.min(currentX, maxX));
+                    currentY = Math.max(0, Math.min(currentY, maxY));
+
+                    windowElement.style.left = currentX + 'px';
+                    windowElement.style.top = currentY + 'px';
+                }
+            }
+
+            // Poista vanhat listenerit jos on
+            header.removeEventListener("mousedown", dragStart);
+            header.removeEventListener("touchstart", dragStart);
+            
+            // Lisää uudet event listenerit
+            header.addEventListener("mousedown", dragStart);
+            header.addEventListener("touchstart", dragStart);
+            document.addEventListener("mouseup", dragEnd);
+            document.addEventListener("touchend", dragEnd);
+            document.addEventListener("mousemove", drag);
+            document.addEventListener("touchmove", drag);
+        }
+
+        // Käynnistä-valikko
+        function toggleStartMenu() {
+            const startMenu = document.getElementById('start-menu');
+            const isVisible = startMenu.style.display === 'flex';
+            startMenu.style.display = isVisible ? 'none' : 'flex';
+            
+            // Soita klikkausääni
+            PigOSAudio.playClickSound();
+        }
+
+        // Sammutus- ja uudelleenkäynnistystoiminnot
+        function shutdownSystem() {
+            // Soita klikkausääni
+            PigOSAudio.playClickSound();
+            
+            // Tallenna nykyisen käyttäjän tiedot ennen sammutusta
+            if (UserManager.currentUser) {
+                PigOSStorage.save('lastUser', UserManager.currentUser.id);
+            }
+            
+            document.getElementById('shutdown-screen').style.display = 'flex';
+            document.getElementById('shutdown-message').textContent = 'Sammutetaan...';
+            
+            // Sammutusääni
+            setTimeout(() => {
+                PigOSAudio.playTone(400, 0.2, 0.15);
+                setTimeout(() => PigOSAudio.playTone(300, 0.3, 0.15), 200);
+                setTimeout(() => PigOSAudio.playTone(200, 0.5, 0.15), 400);
+            }, 500);
+            
+            setTimeout(function() {
+                document.body.innerHTML = '<div style="display: flex; justify-content: center; align-items: center; height: 100vh; background: black; color: white; font-size: 24px;">Järjestelmä on sammutettu</div>';
+            }, 2000);
+        }
+
+        function rebootSystem() {
+            // Soita klikkausääni
+            PigOSAudio.playClickSound();
+            
+            // Tallenna nykyisen käyttäjän tiedot ennen uudelleenkäynnistystä
+            if (UserManager.currentUser) {
+                PigOSStorage.save('lastUser', UserManager.currentUser.id);
+            }
+            
+            document.getElementById('shutdown-screen').style.display = 'flex';
+            document.getElementById('shutdown-message').textContent = 'Käynnistetään uudelleen...';
+            
+            // Uudelleenkäynnistysääni
+            setTimeout(() => {
+                PigOSAudio.playTone(300, 0.2, 0.15);
+                setTimeout(() => PigOSAudio.playTone(400, 0.2, 0.15), 200);
+                setTimeout(() => PigOSAudio.playTone(500, 0.3, 0.15), 400);
+            }, 500);
+            
+            setTimeout(function() {
+                window.location.reload();
+            }, 2000);
+        }
+
+        // Teemanvaihto
+        function changeTheme(themeName) {
+            document.body.setAttribute('data-theme', themeName);
+            // Tallenna teemavalinta
+            PigOSStorage.save('theme', themeName);
+            console.log('Teema vaihdettu ja tallennettu:', themeName);
+        }
+
+        // Päivitysten tarkistus
+        function checkForUpdates() {
+            const updateInfo = document.getElementById('update-info');
+            updateInfo.innerHTML = '<div class="loading"></div> Tarkistetaan päivityksiä...';
+            
+            // Soita klikkausääni
+            PigOSAudio.playClickSound();
+            
+            // Simuloi GitHub API -kutsua
+            setTimeout(function() {
+                updateInfo.innerHTML = '<p>✅ Järjestelmä on ajan tasalla!</p><p>Viimeisin versio: v1.0.0</p>';
+                document.getElementById('latest-version').textContent = 'v1.0.0';
+                
+                // Soita onnistumisääni
+                PigOSAudio.playSuccessSound();
+            }, 2000);
+        }
+
+        // Äänen hallinta
+        let isMuted = false;
+        function toggleMute() {
+            isMuted = !isMuted;
+            document.getElementById('volume-control').textContent = isMuted ? '🔇' : '🔊';
+            // Tallenna ääniasetukset
+            PigOSStorage.save('muted', isMuted);
+            console.log('Ääniasetukset tallennettu:', isMuted);
+        }
+
+        // Matopeli
+        let snakeGameActive = false;
+        let snake, food, direction, gameLoop, score;
+
+        function initSnakeGame() {
+            const canvas = document.getElementById('snake-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            // Alusta peli
+            snake = [{x: 10, y: 10}];
+            food = generateFood();
+            direction = 'right';
+            score = 0;
+            snakeGameActive = true;
+            
+            document.getElementById('snake-score').textContent = 'Pisteet: 0';
+            document.getElementById('game-over-message').style.display = 'none';
+            
+            // Piirrä peli
+            drawSnakeGame(ctx);
+            
+            // Aloita pelisilmukka
+            if (gameLoop) clearInterval(gameLoop);
+            gameLoop = setInterval(() => gameUpdate(ctx), 150);
+            
+            // Lisää näppäimistön kuuntelija
+            window.addEventListener('keydown', handleKeyPress);
+        }
+
+        function gameUpdate(ctx) {
+            if (!snakeGameActive) return;
+            
+            // Liikuta kärmettä
+            const head = {...snake[0]};
+            
+            switch(direction) {
+                case 'up': head.y--; break;
+                case 'down': head.y++; break;
+                case 'left': head.x--; break;
+                case 'right': head.x++; break;
+            }
+            
+            // Tarkista törmäykset
+            if (head.x < 0 || head.x >= 20 || head.y < 0 || head.y >= 20 || 
+                snake.some(segment => segment.x === head.x && segment.y === head.y)) {
+                gameOver();
+                return;
+            }
+            
+            // Lisää uusi pää
+            snake.unshift(head);
+            
+            // Tarkista onko ruokaa syöty
+            if (head.x === food.x && head.y === food.y) {
+                score++;
+                document.getElementById('snake-score').textContent = `Pisteet: ${score}`;
+                food = generateFood();
+                
+                // Soita onnistumisääni kun syödään ruokaa
+                PigOSAudio.playTone(400 + score * 50, 0.1, 0.1);
+            } else {
+                // Poista häntä jos ruokaa ei syöty
+                snake.pop();
+            }
+            
+            // Piirrä peli
+            drawSnakeGame(ctx);
+        }
+
+        function drawSnakeGame(ctx) {
+            const canvas = document.getElementById('snake-canvas');
+            const cellSize = canvas.width / 20;
+            
+            // Tyhjennä kenttä
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Piirrä ruoka
+            ctx.fillStyle = '#FF5252';
+            ctx.fillRect(food.x * cellSize, food.y * cellSize, cellSize, cellSize);
+            
+            // Piirrä kärme
+            ctx.fillStyle = '#4CAF50';
+            snake.forEach(segment => {
+                ctx.fillRect(segment.x * cellSize, segment.y * cellSize, cellSize, cellSize);
+            });
+        }
+
+        function generateFood() {
+            let newFood;
+            do {
+                newFood = {
+                    x: Math.floor(Math.random() * 20),
+                    y: Math.floor(Math.random() * 20)
+                };
+            } while (snake.some(segment => segment.x === newFood.x && segment.y === newFood.y));
+            
+            return newFood;
+        }
+
+        function handleKeyPress(e) {
+            if (!snakeGameActive) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (direction !== 'down') direction = 'up';
+                    break;
+                case 'ArrowDown':
+                    if (direction !== 'up') direction = 'down';
+                    break;
+                case 'ArrowLeft':
+                    if (direction !== 'right') direction = 'left';
+                    break;
+                case 'ArrowRight':
+                    if (direction !== 'left') direction = 'right';
+                    break;
+            }
+        }
+
+        function gameOver() {
+            snakeGameActive = false;
+            clearInterval(gameLoop);
+            
+            const gameOverMessage = document.getElementById('game-over-message');
+            document.getElementById('final-score').textContent = `Lopetuspisteet: ${score}`;
+            gameOverMessage.style.display = 'block';
+            
+            // Soita game over -ääni
+            PigOSAudio.playErrorSound();
+            
+            window.removeEventListener('keydown', handleKeyPress);
+        }
+
+        function restartSnakeGame() {
+            initSnakeGame();
+        }
+
+        // Estä start-valikon sulkeutuminen kun sitä klikataan
+        document.addEventListener('DOMContentLoaded', function() {
+            // Estä start-valikon sulkeutuminen kun sitä klikataan
+            const startMenu = document.getElementById('start-menu');
+            if (startMenu) {
+                startMenu.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                });
+            }
+        });
+
+        // Sulje start-valikko kun klikataan muualle
+        document.addEventListener('click', function(e) {
+            const startMenu = document.getElementById('start-menu');
+            const startButton = document.querySelector('.start-button');
+            
+            // Älä sulje jos klikataan start-nappia
+            if (e.target === startButton || startButton.contains(e.target)) {
+                return;
+            }
+            
+            if (startMenu && startMenu.style.display === 'flex') {
+                startMenu.style.display = 'none';
+            }
+            
+            hideContextMenu();
         });
     </script>
 </body>
